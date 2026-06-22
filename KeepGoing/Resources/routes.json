@@ -1,0 +1,68 @@
+[
+  {
+    "id": "amsterdam-istanbul",
+    "title": "Amsterdam → Istanbul",
+    "startCity": "Amsterdam",
+    "destinationCity": "Istanbul",
+    "totalDistanceKm": 2200,
+    "youtubeSearchQuery": "Istanbul walking tour 4K",
+    "points": [
+      {
+        "id": "amsterdam",
+        "name": "Amsterdam",
+        "latitude": 52.3676,
+        "longitude": 4.9041,
+        "cumulativeDistanceKm": 0
+      },
+      {
+        "id": "cologne",
+        "name": "Cologne",
+        "latitude": 50.9375,
+        "longitude": 6.9603,
+        "cumulativeDistanceKm": 265
+      },
+      {
+        "id": "munich",
+        "name": "Munich",
+        "latitude": 48.1351,
+        "longitude": 11.5820,
+        "cumulativeDistanceKm": 735
+      },
+      {
+        "id": "vienna",
+        "name": "Vienna",
+        "latitude": 48.2082,
+        "longitude": 16.3738,
+        "cumulativeDistanceKm": 1120
+      },
+      {
+        "id": "budapest",
+        "name": "Budapest",
+        "latitude": 47.4979,
+        "longitude": 19.0402,
+        "cumulativeDistanceKm": 1360
+      },
+      {
+        "id": "belgrade",
+        "name": "Belgrade",
+        "latitude": 44.7866,
+        "longitude": 20.4489,
+        "cumulativeDistanceKm": 1740
+      },
+      {
+        "id": "sofia",
+        "name": "Sofia",
+        "latitude": 42.6977,
+        "longitude": 23.3219,
+        "cumulativeDistanceKm": 2130
+      },
+      {
+        "id": "istanbul",
+        "name": "Istanbul",
+        "latitude": 41.0082,
+        "longitude": 28.9784,
+        "cumulativeDistanceKm": 2200
+      }
+    ]
+  }
+]
