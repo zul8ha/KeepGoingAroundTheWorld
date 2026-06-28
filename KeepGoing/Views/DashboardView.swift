@@ -29,6 +29,11 @@ struct DashboardView: View {
             
             youtubeButton
             
+//            Button("Reset progress") {
+//                walkedDistanceKm = 0
+//            }
+//            .buttonStyle(.bordered)
+            
             Spacer()
         }
         .padding()
