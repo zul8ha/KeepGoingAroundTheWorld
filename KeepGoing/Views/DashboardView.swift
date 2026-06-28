@@ -12,7 +12,7 @@ struct DashboardView: View {
 
     @State private var walkedDistanceKm: Double = 18.4
 
-    private var progress: RouteProgress {
+    private var routeProgress: RouteProgress {
         RouteProgressCalculator().calculate(
             route: route,
             walkedDistanceKm: walkedDistanceKm
@@ -20,35 +20,88 @@ struct DashboardView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            Text(route.title)
-                .font(.largeTitle.bold())
-
-            ProgressView(value: progress.progress)
-                .progressViewStyle(.linear)
-
-            Text("Walked: \(progress.walkedDistanceKm, specifier: "%.1f") km")
-            Text("Remaining: \(progress.remainingDistanceKm, specifier: "%.1f") km")
-
-            if let currentPoint = progress.currentPoint {
-                Text("Current area: \(currentPoint.name)")
-            }
-
-            if let nextPoint = progress.nextPoint {
-                Text("Next checkpoint: \(nextPoint.name)")
-            }
-
-            Button("Open walking videos") {
-                openYouTubeSearch(query: route.youtubeSearchQuery)
-            }
-
+        VStack(alignment: .leading, spacing: 24) {
+            header
+            
+            progressSection
+            
+            checkpointSection
+            
+            youtubeButton
+            
             Spacer()
         }
         .padding()
+        .navigationTitle(route.destinationCity)
+        .navigationBarTitleDisplayMode(.inline)
+    }
+    
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(route.title)
+                .font(.largeTitle.bold())
+            Text("Virtual walking challenge")
+                .foregroundStyle(.secondary)
+        }
+    }
+    
+    private var progressSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            ProgressView(value: routeProgress.progress)
+                .progressViewStyle(.linear)
+            HStack {
+                Text("\(routeProgress.walkedDistanceKm, specifier: "%.1f") km walked")
+                SwiftUICore.Spacer()
+                Text("\(routeProgress.remainingDistanceKm, specifier: "%.1f") km left")
+            }
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+            
+            Slider(
+                value: $walkedDistanceKm,
+                in: 0...route.totalDistanceKm
+            )
+            
+            Text("\(Int(routeProgress.progress * 100))% complete")
+                .font(.headline)
+        }
+    }
+    
+    private var checkpointSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if let currentPoint = routeProgress.currentPoint {
+                Text("Current area")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(currentPoint.name)
+                    .font(.title2.bold())
+            }
+            
+            if let nextPoint = routeProgress.nextPoint {
+                Text("Next checkpoint: \(nextPoint.name)")
+                    .foregroundStyle(.secondary)
+            } else {
+                Text("You reached \(route.destinationCity)")
+                    .font(.headline)
+            }
+        }
+    }
+    
+    private var youtubeButton: some View {
+        Button {
+            openYouTubeSearch(query: route.youtubeSearchQuery)
+        } label: {
+            Text("Open walking videos on YouTube")
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.borderedProminent)
     }
 
     private func openYouTubeSearch(query: String) {
-        let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
+        let encodedQuery = query.addingPercentEncoding(
+            withAllowedCharacters: .urlQueryAllowed
+        ) ?? query
+        
         let urlString = "https://www.youtube.com/results?search_query=\(encodedQuery)"
 
         if let url = URL(string: urlString) {
