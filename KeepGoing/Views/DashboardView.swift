@@ -10,7 +10,7 @@ import SwiftUI
 struct DashboardView: View {
     let route: WalkingRoute
 
-    @State private var walkedDistanceKm: Double = 18.4
+    @AppStorage("walkedDistanceKm") private var walkedDistanceKm: Double = 18.4
 
     private var routeProgress: RouteProgress {
         RouteProgressCalculator().calculate(
