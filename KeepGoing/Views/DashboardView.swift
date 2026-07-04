@@ -11,7 +11,11 @@ struct DashboardView: View {
     let route: WalkingRoute
 
     @AppStorage private var walkedDistanceKm: Double
-    @AppStorage private var challengeStartTimestamp: Double
+//    @AppStorage private var challengeStartTimestamp: Double
+    @AppStorage("challengeStartTimestamp")
+    private var challengeStartTimestamp: Double = Date()
+        .addingTimeInterval(-24 * 60 * 60)
+        .timeIntervalSince1970
     
     @State private var isSyncingHealthKit = false
     @State private var healthKitMessage: String?
@@ -38,30 +42,6 @@ struct DashboardView: View {
             route: route,
             walkedDistanceKm: walkedDistanceKm
         )
-    }
-
-    private var healthKitSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Button {
-                Task {
-                    await syncHealthKitDistance()
-                }
-            } label: {
-                if isSyncingHealthKit {
-                    Text("Syncing HealthKit...")
-                } else {
-                    Text("Sync from HealthKit")
-                }
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(isSyncingHealthKit)
-            
-            if let healthKitMessage {
-                Text(healthKitMessage)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
     }
     
     @MainActor
@@ -142,6 +122,30 @@ struct DashboardView: View {
             
             Text("\(Int(routeProgress.progress * 100))% complete")
                 .font(.headline)
+        }
+    }
+    
+    private var healthKitSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Button {
+                Task {
+                    await syncHealthKitDistance()
+                }
+            } label: {
+                if isSyncingHealthKit {
+                    Text("Syncing HealthKit...")
+                } else {
+                    Text("Sync from HealthKit")
+                }
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(isSyncingHealthKit)
+            
+            if let healthKitMessage {
+                Text(healthKitMessage)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
     
