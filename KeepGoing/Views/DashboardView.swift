@@ -10,12 +10,16 @@ import SwiftUI
 struct DashboardView: View {
     let route: WalkingRoute
 
-    @AppStorage private var walkedDistanceKm: Double
+//    @AppStorage private var walkedDistanceKm: Double
 //    @AppStorage private var challengeStartTimestamp: Double
+    
+    // test data:
+    @AppStorage("walkedDistanceKm")
+    private var walkedDistanceKm: Double = 0
+
     @AppStorage("challengeStartTimestamp")
-    private var challengeStartTimestamp: Double = Date()
-        .addingTimeInterval(-24 * 60 * 60)
-        .timeIntervalSince1970
+    private var challengeStartTimestamp: Double = Calendar.current.startOfDay(for: Date()).timeIntervalSince1970
+    // end of test data
     
     @State private var isSyncingHealthKit = false
     @State private var healthKitMessage: String?
@@ -70,13 +74,10 @@ struct DashboardView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
             header
-            
             progressSection
-            
+            challengeControlSection
             healthKitSection
-            
             checkpointSection
-            
             youtubeButton
             
 //            Button("Reset progress") {
@@ -190,4 +191,34 @@ struct DashboardView: View {
             UIApplication.shared.open(url)
         }
     }
+    
+    private var challengeControlSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Challenge started")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            
+            Text(challengeStartDate.formatted(date: .abbreviated, time: .omitted))
+                .font(.subheadline)
+            
+            HStack {
+                Button("Start from today") {
+                    challengeStartTimestamp = Calendar.current
+                        .startOfDay(for: Date())
+                        .timeIntervalSince1970
+                    
+                    walkedDistanceKm = 0
+                    healthKitMessage = "Challenge start date reset to today."
+                }
+                .buttonStyle(.bordered)
+                
+                Button("Reset progress") {
+                    walkedDistanceKm = 0
+                    healthKitMessage = "Progress reset."
+                }
+                .buttonStyle(.bordered)
+            }
+        }
+    }
+    
 }
