@@ -10,7 +10,28 @@ import SwiftUI
 struct DashboardView: View {
     let route: WalkingRoute
 
-    @AppStorage("walkedDistanceKm") private var walkedDistanceKm: Double = 0
+    @AppStorage private var walkedDistanceKm: Double
+    @AppStorage private var challengeStartTimestamp: Double
+    
+    @State private var isSyncingHealthKit = false
+    @State private var healthKitMessage: String?
+    
+    init(route: WalkingRoute) {
+        self.route = route
+        self._walkedDistanceKm = AppStorage(
+            wrappedValue: 0,
+            "walkedDistanceKm.\(route.id)"
+        )
+        
+        self._challengeStartTimestamp = AppStorage(
+            wrappedValue: Date().timeIntervalSince1970,
+            "challengeStartTimestamp.\(route.id)"
+        )
+    }
+    
+    private var challengeStartDate: Date {
+        Date(timeIntervalSince1970: challengeStartTimestamp)
+    }
 
     private var routeProgress: RouteProgress {
         RouteProgressCalculator().calculate(
@@ -19,11 +40,60 @@ struct DashboardView: View {
         )
     }
 
+    private var healthKitSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Button {
+                Task {
+                    await syncHealthKitDistance()
+                }
+            } label: {
+                if isSyncingHealthKit {
+                    Text("Syncing HealthKit...")
+                } else {
+                    Text("Sync from HealthKit")
+                }
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(isSyncingHealthKit)
+            
+            if let healthKitMessage {
+                Text(healthKitMessage)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+    
+    @MainActor
+    private func syncHealthKitDistance() async {
+        isSyncingHealthKit = true
+        healthKitMessage = nil
+        
+        defer {
+            isSyncingHealthKit = false
+        }
+        
+        do {
+            try await HealthKitManager.shared.requestAuthorization()
+            
+            let distanceKm = try await HealthKitManager.shared
+                .fetchWalkingRunningDistanceKm(from: challengeStartDate)
+            
+            walkedDistanceKm = distanceKm
+            
+            healthKitMessage = "Synced \(distanceKm.formatted(.number.precision(.fractionLength(1)))) km from HealthKit."
+        } catch {
+            healthKitMessage = "HealthKit sync failed: \(error.localizedDescription)"
+        }
+    }
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
             header
             
             progressSection
+            
+            healthKitSection
             
             checkpointSection
             
@@ -66,6 +136,9 @@ struct DashboardView: View {
                 value: $walkedDistanceKm,
                 in: 0...route.totalDistanceKm
             )
+            Text("Manual test distance")
+                .font(.caption)
+                .foregroundStyle(.secondary)
             
             Text("\(Int(routeProgress.progress * 100))% complete")
                 .font(.headline)

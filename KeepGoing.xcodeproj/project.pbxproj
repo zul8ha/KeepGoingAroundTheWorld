@@ -401,6 +401,7 @@
 				DEVELOPMENT_TEAM = PN4MLLZ46Y;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "KeepGoing uses walking and running distance from HealthKit to calculate your progress on virtual routes.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "KeepGoing may save workout progress to HealthKit if you choose to enable this feature.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -435,6 +436,7 @@
 				DEVELOPMENT_TEAM = PN4MLLZ46Y;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "KeepGoing uses walking and running distance from HealthKit to calculate your progress on virtual routes.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "KeepGoing may save workout progress to HealthKit if you choose to enable this feature.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
