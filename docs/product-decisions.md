@@ -1,5 +1,3 @@
-Конечно. Я бы сейчас положила в `docs/product-decisions.md` вот такой текст:
-
 ````markdown
 # Product Decisions
 
