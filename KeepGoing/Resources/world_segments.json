@@ -1,0 +1,79 @@
+[
+  {
+    "id": "amsterdam-cologne",
+    "sequenceIndex": 0,
+    "startName": "Amsterdam",
+    "endName": "Cologne",
+    "startLatitude": 52.3676,
+    "startLongitude": 4.9041,
+    "endLatitude": 50.9375,
+    "endLongitude": 6.9603,
+    "distanceKm": 265
+  },
+  {
+    "id": "cologne-munich",
+    "sequenceIndex": 1,
+    "startName": "Cologne",
+    "endName": "Munich",
+    "startLatitude": 50.9375,
+    "startLongitude": 6.9603,
+    "endLatitude": 48.1351,
+    "endLongitude": 11.5820,
+    "distanceKm": 470
+  },
+  {
+    "id": "munich-vienna",
+    "sequenceIndex": 2,
+    "startName": "Munich",
+    "endName": "Vienna",
+    "startLatitude": 48.1351,
+    "startLongitude": 11.5820,
+    "endLatitude": 48.2082,
+    "endLongitude": 16.3738,
+    "distanceKm": 385
+  },
+  {
+    "id": "vienna-budapest",
+    "sequenceIndex": 3,
+    "startName": "Vienna",
+    "endName": "Budapest",
+    "startLatitude": 48.2082,
+    "startLongitude": 16.3738,
+    "endLatitude": 47.4979,
+    "endLongitude": 19.0402,
+    "distanceKm": 240
+  },
+  {
+    "id": "budapest-belgrade",
+    "sequenceIndex": 4,
+    "startName": "Budapest",
+    "endName": "Belgrade",
+    "startLatitude": 47.4979,
+    "startLongitude": 19.0402,
+    "endLatitude": 44.7866,
+    "endLongitude": 20.4489,
+    "distanceKm": 380
+  },
+  {
+    "id": "belgrade-sofia",
+    "sequenceIndex": 5,
+    "startName": "Belgrade",
+    "endName": "Sofia",
+    "startLatitude": 44.7866,
+    "startLongitude": 20.4489,
+    "endLatitude": 42.6977,
+    "endLongitude": 23.3219,
+    "distanceKm": 390
+  },
+  {
+    "id": "sofia-istanbul",
+    "sequenceIndex": 6,
+    "startName": "Sofia",
+    "endName": "Istanbul",
+    "startLatitude": 42.6977,
+    "startLongitude": 23.3219,
+    "endLatitude": 41.0082,
+    "endLongitude": 28.9784,
+    "distanceKm": 550
+  }
+]
