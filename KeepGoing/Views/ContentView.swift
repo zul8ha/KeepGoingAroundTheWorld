@@ -6,65 +6,39 @@
 //
 
 import SwiftUI
-import SwiftData
 
 struct ContentView: View {
-    @State private var routes: [WalkingRoute] = []
+    @State private var segments: [WorldSegment] = []
     @State private var errorMessage: String?
 
     var body: some View {
         NavigationStack {
             Group {
-                if routes.isEmpty {
-                    if let errorMessage {
-                        Text(errorMessage)
-                            .foregroundStyle(.red)
-                            .padding()
-                    } else {
-                        ProgressView("Loading routes...")
-                    }
-                } else {
-                    
-                    List(routes) { route in
-                        NavigationLink {
-                            DashboardView(route: route)
-                        } label: {
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text(route.title)
-                                    .font(.headline)
-                                Text("\(Int(route.totalDistanceKm)) km").foregroundStyle(.secondary)
-                                Text("Destination: \(route.destinationCity)")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                }
-            }
-            .navigationTitle("Routes")
-            .task {
-                loadRoutes()
-            }
-            .overlay {
                 if let errorMessage {
                     Text(errorMessage)
                         .foregroundStyle(.red)
                         .padding()
+                } else if segments.isEmpty {
+                    ProgressView("Loading journey...")
+                } else {
+                    HomeView(segments: segments)
                 }
+            }
+            .task {
+                loadSegments()
             }
         }
     }
     
-    private func loadRoutes() {
+    private func loadSegments() {
         do {
-            routes = try RouteLoader().loadRoutes()
+            segments = try WorldSegmentLoader().loadSegments()
         } catch {
-            errorMessage = "Failed to load routes: \(error)"
+            errorMessage = error.localizedDescription
         }
     }
 }
 
 #Preview {
     ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
 }

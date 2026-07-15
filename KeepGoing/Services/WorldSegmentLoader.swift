@@ -22,7 +22,7 @@ enum WorldSegmentLoadingError: LocalizedError {
 }
 
 final class WorldSegmentLoader {
-    func letSegments(from bundle: Bundle = .main) throws -> [WorldSegment] {
+    func loadSegments(from bundle: Bundle = .main) throws -> [WorldSegment] {
         guard let url = bundle.url(
             forResource: "world_segments",
             withExtension: "json"
