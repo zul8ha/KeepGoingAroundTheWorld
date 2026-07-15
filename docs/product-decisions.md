@@ -1,6 +1,19 @@
 ````markdown
 # Product Decisions
 
+## Current UI direction
+
+The main screen is now based on the segmented world journey model.
+
+`HomeView` displays:
+- total journey progress
+- active segment
+- upcoming segments
+- completed segments
+- temporary manual progress controls
+
+The old single-route dashboard remains in the codebase temporarily as reference and will be removed or refactored after HealthKit sync is moved to the world journey model
+.
 ## Product direction
 
 KeepGoing should evolve from a single-route walking tracker into a sequential virtual journey app.
