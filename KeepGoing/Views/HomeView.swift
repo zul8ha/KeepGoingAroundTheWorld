@@ -18,6 +18,23 @@ struct HomeView: View {
         .startOfDay(for: Date())
         .timeIntervalSince1970
     
+    @AppStorage("worldJourneyLastSyncedAt")
+    private var lastSyncedAtTimestamp: Double = 0
+    
+    @State private var isSyncingHealthKit = false
+    @State private var healthKitMessage: String?
+    
+    private var journeyStartedAtDate: Date {
+        Date(timeIntervalSince1970: journeyStartedAtTimestamp)
+    }
+    
+    private var lastSyncedAtDate: Date? {
+        guard lastSyncedAtTimestamp > 0 else {
+            return nil
+        }
+        return Date(timeIntervalSince1970: lastSyncedAtTimestamp)
+    }
+    
     private var segmentProgress: [WorldSegmentProgress] {
         WorldJourneyProgressCalculator().calculate(
             segments: segments,
@@ -55,6 +72,7 @@ struct HomeView: View {
                 header
                 journeyStatsSection
                 activeSegmentSection
+                healthKitSection
                 manualProgressSection
                 plannedSegmentsSection
                 completedSegmentsSection
@@ -116,6 +134,43 @@ struct HomeView: View {
             }
         }
     }
+    
+    private var healthKitSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("HealthKit Sync")
+                .font(.headline)
+            
+            Button {
+                Task {
+                    await syncingHealthKitDistance()
+                }
+            } label: {
+                if isSyncingHealthKit {
+                    Text("Syncing HealthKit...")
+                } else {
+                    Text("Sync from HealthKit")
+                }
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(isSyncingHealthKit)
+            
+            Text("Journey started: \(journeyStartedAtDate.formatted(date: .abbreviated, time: .omitted))")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            
+            if let lastSyncedAtDate {
+                Text("Last synced: \(lastSyncedAtDate.formatted(date: .abbreviated, time: .shortened))")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            
+            if let healthKitMessage {
+                Text(healthKitMessage)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
 
     private var manualProgressSection: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -133,6 +188,8 @@ struct HomeView: View {
                     journeyStartedAtTimestamp = Calendar.current
                         .startOfDay(for: Date())
                         .timeIntervalSince1970
+                    lastSyncedAtTimestamp = 0
+                    healthKitMessage = "Journey reset to today."
                 }
                 .buttonStyle(.bordered)
 
@@ -183,6 +240,30 @@ struct HomeView: View {
         }
     }
 
+    @MainActor
+    private func syncingHealthKitDistance() async {
+        isSyncingHealthKit = true
+        healthKitMessage = nil
+        
+        defer {
+            isSyncingHealthKit = false
+        }
+        
+        do {
+            try await HealthKitManager.shared.requestAuthorization()
+            
+            let distanceKm = try await HealthKitManager.shared
+                .fetchWalkingRunningDistanceKm(from: journeyStartedAtDate)
+            
+            totalProgressKm = min(distanceKm, totalJourneyDistanceKm)
+            lastSyncedAtTimestamp = Date().timeIntervalSince1970
+            
+            healthKitMessage = "Synced \(distanceKm.formatted(.number.precision(.fractionLength(1)))) km from HealthKit."
+        } catch {
+            healthKitMessage = "HealthKit sync failed: \(error.localizedDescription)"
+        }
+    }
+    
     private func statCard(title: String, value: String) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(value)
