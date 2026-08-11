@@ -127,7 +127,7 @@ struct HomeView: View {
                 .font(.headline)
 
             if let activeSegment {
-                SegmentTileView(segmentProgress: activeSegment)
+                segmentLink(for: activeSegment)
             } else {
                 Text("All segments completed.")
                     .foregroundStyle(.secondary)
@@ -218,7 +218,7 @@ struct HomeView: View {
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(plannedSegments.prefix(5)) { segmentProgress in
-                    SegmentTileView(segmentProgress: segmentProgress)
+                    segmentLink(for: segmentProgress)
                 }
             }
         }
@@ -234,7 +234,7 @@ struct HomeView: View {
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(completedSegments.reversed()) { segmentProgress in
-                    SegmentTileView(segmentProgress: segmentProgress)
+                    segmentLink(for: segmentProgress)
                 }
             }
         }
@@ -277,5 +277,20 @@ struct HomeView: View {
         .padding()
         .background(.thinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 14))
+    }
+    
+    private func segmentLink(
+        for segmentProgress: WorldSegmentProgress
+    ) -> some View {
+        NavigationLink {
+            SegmentDashboardView(
+                segmentProgress: segmentProgress,
+                totalJourneyProgressKm: totalProgressKm,
+                totalJourneyDistanceKm: totalJourneyDistanceKm
+            )
+        } label: {
+            SegmentTileView(segmentProgress: segmentProgress)
+        }
+        .buttonStyle(.plain)
     }
 }
