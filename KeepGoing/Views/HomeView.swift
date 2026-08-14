@@ -85,7 +85,9 @@ struct HomeView: View {
                 journeyStatsSection
                 activeSegmentSection
                 healthKitSection
-                manualProgressSection
+                #if DEBUG
+                developerToolsSection
+                #endif
                 plannedSegmentsSection
                 completedSegmentsSection
             }
@@ -190,18 +192,22 @@ struct HomeView: View {
         }
     }
 
-    private var manualProgressSection: some View {
+    private var developerToolsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Manual Test Progress")
+            Text("Developer Tools")
                 .font(.headline)
 
+            Text("Manual progress controls are available only in debug builds.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+            
             Slider(
                 value: $totalProgressKm,
                 in: 0...max(totalJourneyDistanceKm, 1)
             )
 
             HStack {
-                Button("Reset") {
+                Button("Reset Journey") {
                     totalProgressKm = 0
                     journeyStartedAtTimestamp = Calendar.current
                         .startOfDay(for: Date())
@@ -219,10 +225,6 @@ struct HomeView: View {
                 }
                 .buttonStyle(.bordered)
             }
-
-            Text("This section is temporary. Later HealthKit will update total journey progress.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
         }
     }
 
