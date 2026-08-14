@@ -35,6 +35,18 @@ struct HomeView: View {
         return Date(timeIntervalSince1970: lastSyncedAtTimestamp)
     }
     
+    private var autoSyncInterval: TimeInterval {
+        5 * 60
+    }
+    
+    private var shouldAutoSyncHealthKit: Bool {
+        guard let lastSyncedAtDate else {
+            return true
+        }
+        
+        return Date().timeIntervalSince(lastSyncedAtDate) > autoSyncInterval
+    }
+    
     private var segmentProgress: [WorldSegmentProgress] {
         WorldJourneyProgressCalculator().calculate(
             segments: segments,
@@ -80,6 +92,9 @@ struct HomeView: View {
             .padding()
         }
         .navigationTitle("KeepGoing")
+        .task {
+            await shouldAutoSyncHealthKitIfNeeded()
+        }
     }
     
     private var header: some View {
@@ -162,6 +177,9 @@ struct HomeView: View {
                 Text("Last synced: \(lastSyncedAtDate.formatted(date: .abbreviated, time: .shortened))")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                Text("Auto-sync runs when the app opens if the last sync was more than 5 minutes ago.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
             
             if let healthKitMessage {
@@ -239,9 +257,30 @@ struct HomeView: View {
             }
         }
     }
+    
+    @MainActor
+    private func shouldAutoSyncHealthKitIfNeeded() async {
+        guard shouldAutoSyncHealthKit else {
+            return
+        }
+        
+        guard !isSyncingHealthKit else {
+            return
+        }
+        
+        await syncingHealthKitDistance(
+            successMessagePrefix: "Auto-synced"
+        )
+    }
 
     @MainActor
-    private func syncingHealthKitDistance() async {
+    private func syncingHealthKitDistance(
+        successMessagePrefix: String = "Synced"
+    ) async {
+        guard !isSyncingHealthKit else {
+            return
+        }
+        
         isSyncingHealthKit = true
         healthKitMessage = nil
         
@@ -258,7 +297,7 @@ struct HomeView: View {
             totalProgressKm = min(distanceKm, totalJourneyDistanceKm)
             lastSyncedAtTimestamp = Date().timeIntervalSince1970
             
-            healthKitMessage = "Synced \(distanceKm.formatted(.number.precision(.fractionLength(1)))) km from HealthKit."
+            healthKitMessage = "\(successMessagePrefix) \(distanceKm.formatted(.number.precision(.fractionLength(1)))) km from HealthKit."
         } catch {
             healthKitMessage = "HealthKit sync failed: \(error.localizedDescription)"
         }
