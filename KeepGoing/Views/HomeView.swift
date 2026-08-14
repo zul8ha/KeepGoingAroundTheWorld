@@ -10,13 +10,14 @@ import SwiftUI
 struct HomeView: View {
     let segments: [WorldSegment]
     
-    @AppStorage("worldJourneyTotalProgressKm")
-    private var totalProgressKm: Double = 0
+    @AppStorage("worldJourneyHealthKitProgressKm")
+    private var healthKitProgressKm: Double = 0
+    
+    @AppStorage("worldJourneyDebugProgressOffsetKm")
+    private var debugProgressOffsetKm: Double = 0
     
     @AppStorage("worldJourneyStartedAt")
-    private var journeyStartedAtTimestamp: Double = Calendar.current
-        .startOfDay(for: Date())
-        .timeIntervalSince1970
+    private var journeyStartedAtTimestamp: Double = 0
     
     @AppStorage("worldJourneyLastSyncedAt")
     private var lastSyncedAtTimestamp: Double = 0
@@ -25,7 +26,20 @@ struct HomeView: View {
     @State private var healthKitMessage: String?
     
     private var journeyStartedAtDate: Date {
-        Date(timeIntervalSince1970: journeyStartedAtTimestamp)
+        if journeyStartedAtTimestamp == 0 {
+            return Calendar.current.startOfDay(for: Date())
+        }
+        return Date(timeIntervalSince1970: journeyStartedAtTimestamp)
+    }
+    
+    private func initializeJourneyStartIfNeeded() {
+        guard journeyStartedAtTimestamp == 0 else {
+            return
+        }
+        
+        journeyStartedAtTimestamp = Calendar.current
+            .startOfDay(for: Date())
+            .timeIntervalSince1970
     }
     
     private var lastSyncedAtDate: Date? {
@@ -45,6 +59,13 @@ struct HomeView: View {
         }
         
         return Date().timeIntervalSince(lastSyncedAtDate) > autoSyncInterval
+    }
+    
+    private var totalProgressKm: Double {
+        min(
+            healthKitProgressKm + debugProgressOffsetKm,
+            totalJourneyDistanceKm
+        )
     }
     
     private var segmentProgress: [WorldSegmentProgress] {
@@ -95,6 +116,7 @@ struct HomeView: View {
         }
         .navigationTitle("KeepGoing")
         .task {
+            initializeJourneyStartIfNeeded()
             await shouldAutoSyncHealthKitIfNeeded()
         }
     }
@@ -201,14 +223,23 @@ struct HomeView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
             
+            VStack(alignment: .leading, spacing: 4) {
+                        Text("HealthKit: \(healthKitProgressKm, specifier: "%.1f") km")
+                        Text("Debug offset: \(debugProgressOffsetKm, specifier: "%.1f") km")
+                        Text("Displayed total: \(totalProgressKm, specifier: "%.1f") km")
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            
             Slider(
-                value: $totalProgressKm,
-                in: 0...max(totalJourneyDistanceKm, 1)
+                value: $debugProgressOffsetKm,
+                in: 0...max(totalJourneyDistanceKm - healthKitProgressKm, 1)
             )
 
             HStack {
                 Button("Reset Journey") {
-                    totalProgressKm = 0
+                    healthKitProgressKm = 0
+                    debugProgressOffsetKm = 0
                     journeyStartedAtTimestamp = Calendar.current
                         .startOfDay(for: Date())
                         .timeIntervalSince1970
@@ -218,10 +249,15 @@ struct HomeView: View {
                 .buttonStyle(.bordered)
 
                 Button("Jump +100 km") {
-                    totalProgressKm = min(
-                        totalProgressKm + 100,
-                        totalJourneyDistanceKm
+                    debugProgressOffsetKm = min(
+                        debugProgressOffsetKm + 100,
+                        max(totalJourneyDistanceKm - healthKitProgressKm, 0)
                     )
+                }
+                .buttonStyle(.bordered)
+                
+                Button("Clear Debug") {
+                    debugProgressOffsetKm = 0
                 }
                 .buttonStyle(.bordered)
             }
@@ -296,7 +332,7 @@ struct HomeView: View {
             let distanceKm = try await HealthKitManager.shared
                 .fetchWalkingRunningDistanceKm(from: journeyStartedAtDate)
             
-            totalProgressKm = min(distanceKm, totalJourneyDistanceKm)
+            healthKitProgressKm = min(distanceKm, totalJourneyDistanceKm)
             lastSyncedAtTimestamp = Date().timeIntervalSince1970
             
             healthKitMessage = "\(successMessagePrefix) \(distanceKm.formatted(.number.precision(.fractionLength(1)))) km from HealthKit."
