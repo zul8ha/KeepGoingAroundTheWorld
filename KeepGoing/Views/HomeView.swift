@@ -32,16 +32,6 @@ struct HomeView: View {
         return Date(timeIntervalSince1970: journeyStartedAtTimestamp)
     }
     
-    private func initializeJourneyStartIfNeeded() {
-        guard journeyStartedAtTimestamp == 0 else {
-            return
-        }
-        
-        journeyStartedAtTimestamp = Calendar.current
-            .startOfDay(for: Date())
-            .timeIntervalSince1970
-    }
-    
     private var lastSyncedAtDate: Date? {
         guard lastSyncedAtTimestamp > 0 else {
             return nil
@@ -99,26 +89,61 @@ struct HomeView: View {
         return min(max(totalProgressKm / totalJourneyDistanceKm, 0), 1)
     }
     
+    private var hasStartedJourney: Bool {
+        journeyStartedAtTimestamp > 0
+    }
+    
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 header
-                journeyStatsSection
-                activeSegmentSection
-                healthKitSection
-                #if DEBUG
-                developerToolsSection
-                #endif
-                plannedSegmentsSection
-                completedSegmentsSection
+                
+                if hasStartedJourney {
+                    journeyStatsSection
+                    activeSegmentSection
+                    healthKitSection
+                    #if DEBUG
+                    developerToolsSection
+                    #endif
+                    plannedSegmentsSection
+                    completedSegmentsSection
+                } else {
+                    startJourneySection
+                    plannedSegmentsSection
+                }
             }
             .padding()
         }
         .navigationTitle("KeepGoing")
         .task {
-            initializeJourneyStartIfNeeded()
-            await shouldAutoSyncHealthKitIfNeeded()
+            guard hasStartedJourney else {
+                return
+            }
+            
+            await autoSyncHealthKitIfNeeded()
         }
+    }
+    
+    private func startJourneyToday() {
+        journeyStartedAtTimestamp = Calendar.current
+            .startOfDay(for: Date())
+            .timeIntervalSince1970
+        
+        healthKitProgressKm = 0
+        debugProgressOffsetKm = 0
+        lastSyncedAtTimestamp = 0
+        healthKitMessage = "Journey started today."
+    }
+    
+    private func resetJourneyToToday() {
+        journeyStartedAtTimestamp = Calendar.current
+            .startOfDay(for: Date())
+            .timeIntervalSince1970
+
+        healthKitProgressKm = 0
+        debugProgressOffsetKm = 0
+        lastSyncedAtTimestamp = 0
+        healthKitMessage = "Journey restarted from today."
     }
     
     private var header: some View {
@@ -129,6 +154,28 @@ struct HomeView: View {
             Text("A virtual walking journey split into sequential segments.")
                 .foregroundStyle(.secondary)
         }
+    }
+    
+    private var startJourneySection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Start your journey")
+                .font(.title.bold())
+            
+            Text("KeepGoing will use your walking and running distance from HealthKit to move you through a virtual around-the-world journey.")
+                .foregroundStyle(.secondary)
+            
+            Button("Start Journey Today") {
+                startJourneyToday()
+            }
+            .buttonStyle(.borderedProminent)
+            
+            Text("Your journey progress will be counted from the start of today.")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+        .padding()
+        .background(.regularMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 18))
     }
     
     private var journeyStatsSection: some View {
@@ -238,13 +285,7 @@ struct HomeView: View {
 
             HStack {
                 Button("Reset Journey") {
-                    healthKitProgressKm = 0
-                    debugProgressOffsetKm = 0
-                    journeyStartedAtTimestamp = Calendar.current
-                        .startOfDay(for: Date())
-                        .timeIntervalSince1970
-                    lastSyncedAtTimestamp = 0
-                    healthKitMessage = "Journey reset to today."
+                    resetJourneyToToday()
                 }
                 .buttonStyle(.bordered)
 
@@ -257,7 +298,11 @@ struct HomeView: View {
                 .buttonStyle(.bordered)
                 
                 Button("Clear Debug") {
+                    journeyStartedAtTimestamp = 0
+                    healthKitProgressKm = 0
                     debugProgressOffsetKm = 0
+                    lastSyncedAtTimestamp = 0
+                    healthKitMessage = nil
                 }
                 .buttonStyle(.bordered)
             }
@@ -297,7 +342,7 @@ struct HomeView: View {
     }
     
     @MainActor
-    private func shouldAutoSyncHealthKitIfNeeded() async {
+    private func autoSyncHealthKitIfNeeded() async {
         guard shouldAutoSyncHealthKit else {
             return
         }
