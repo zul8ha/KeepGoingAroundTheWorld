@@ -10,52 +10,10 @@ import SwiftUI
 struct HomeView: View {
     let segments: [WorldSegment]
     
-    @AppStorage("worldJourneyHealthKitProgressKm")
-    private var healthKitProgressKm: Double = 0
-    
-    @AppStorage("worldJourneyDebugProgressOffsetKm")
-    private var debugProgressOffsetKm: Double = 0
-    
-    @AppStorage("worldJourneyStartedAt")
-    private var journeyStartedAtTimestamp: Double = 0
-    
-    @AppStorage("worldJourneyLastSyncedAt")
-    private var lastSyncedAtTimestamp: Double = 0
-    
-    @State private var isSyncingHealthKit = false
-    @State private var healthKitMessage: String?
-    
-    private var journeyStartedAtDate: Date {
-        if journeyStartedAtTimestamp == 0 {
-            return Calendar.current.startOfDay(for: Date())
-        }
-        return Date(timeIntervalSince1970: journeyStartedAtTimestamp)
-    }
-    
-    private var lastSyncedAtDate: Date? {
-        guard lastSyncedAtTimestamp > 0 else {
-            return nil
-        }
-        return Date(timeIntervalSince1970: lastSyncedAtTimestamp)
-    }
-    
-    private var autoSyncInterval: TimeInterval {
-        5 * 60
-    }
-    
-    private var shouldAutoSyncHealthKit: Bool {
-        guard let lastSyncedAtDate else {
-            return true
-        }
-        
-        return Date().timeIntervalSince(lastSyncedAtDate) > autoSyncInterval
-    }
+    @StateObject private var journeyStore = JourneyStore()
     
     private var totalProgressKm: Double {
-        min(
-            healthKitProgressKm + debugProgressOffsetKm,
-            totalJourneyDistanceKm
-        )
+        journeyStore.totalProgressKm(totalJourneyDistanceKm: totalJourneyDistanceKm)
     }
     
     private var segmentProgress: [WorldSegmentProgress] {
@@ -89,16 +47,12 @@ struct HomeView: View {
         return min(max(totalProgressKm / totalJourneyDistanceKm, 0), 1)
     }
     
-    private var hasStartedJourney: Bool {
-        journeyStartedAtTimestamp > 0
-    }
-    
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 header
                 
-                if hasStartedJourney {
+                if journeyStore.hasStartedJourney {
                     journeyStatsSection
                     activeSegmentSection
                     healthKitSection
@@ -116,34 +70,14 @@ struct HomeView: View {
         }
         .navigationTitle("KeepGoing")
         .task {
-            guard hasStartedJourney else {
+            guard journeyStore.hasStartedJourney else {
                 return
             }
             
-            await autoSyncHealthKitIfNeeded()
+            await journeyStore.autoSyncHealthKitIfNeeded(
+                totalJourneyDistanceKm: totalJourneyDistanceKm
+            )
         }
-    }
-    
-    private func startJourneyToday() {
-        journeyStartedAtTimestamp = Calendar.current
-            .startOfDay(for: Date())
-            .timeIntervalSince1970
-        
-        healthKitProgressKm = 0
-        debugProgressOffsetKm = 0
-        lastSyncedAtTimestamp = 0
-        healthKitMessage = "Journey started today."
-    }
-    
-    private func resetJourneyToToday() {
-        journeyStartedAtTimestamp = Calendar.current
-            .startOfDay(for: Date())
-            .timeIntervalSince1970
-
-        healthKitProgressKm = 0
-        debugProgressOffsetKm = 0
-        lastSyncedAtTimestamp = 0
-        healthKitMessage = "Journey restarted from today."
     }
     
     private var header: some View {
@@ -165,7 +99,7 @@ struct HomeView: View {
                 .foregroundStyle(.secondary)
             
             Button("Start Journey Today") {
-                startJourneyToday()
+                journeyStore.startJourneyToday()
             }
             .buttonStyle(.borderedProminent)
             
@@ -228,23 +162,25 @@ struct HomeView: View {
             
             Button {
                 Task {
-                    await syncingHealthKitDistance()
+                    await journeyStore.syncHealthKitDistance(
+                        totalJourneyDistanceKm: totalJourneyDistanceKm
+                    )
                 }
             } label: {
-                if isSyncingHealthKit {
+                if journeyStore.isSyncingHealthKit {
                     Text("Syncing HealthKit...")
                 } else {
                     Text("Sync from HealthKit")
                 }
             }
             .buttonStyle(.borderedProminent)
-            .disabled(isSyncingHealthKit)
+            .disabled(journeyStore.isSyncingHealthKit)
             
-            Text("Journey started: \(journeyStartedAtDate.formatted(date: .abbreviated, time: .omitted))")
+            Text("Journey started: \(journeyStore.journeyStartedAtDate.formatted(date: .abbreviated, time: .omitted))")
                 .font(.caption)
                 .foregroundStyle(.secondary)
             
-            if let lastSyncedAtDate {
+            if let lastSyncedAtDate = journeyStore.lastSyncedAtDate {
                 Text("Last synced: \(lastSyncedAtDate.formatted(date: .abbreviated, time: .shortened))")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -253,7 +189,7 @@ struct HomeView: View {
                     .foregroundStyle(.secondary)
             }
             
-            if let healthKitMessage {
+            if let healthKitMessage = journeyStore.healthKitMessage {
                 Text(healthKitMessage)
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -271,38 +207,51 @@ struct HomeView: View {
                         .foregroundStyle(.secondary)
             
             VStack(alignment: .leading, spacing: 4) {
-                        Text("HealthKit: \(healthKitProgressKm, specifier: "%.1f") km")
-                        Text("Debug offset: \(debugProgressOffsetKm, specifier: "%.1f") km")
+                Text("HealthKit: \(journeyStore.healthKitProgressKm, specifier: "%.1f") km")
+                Text("Debug offset: \(journeyStore.debugProgressOffsetKm, specifier: "%.1f") km")
                         Text("Displayed total: \(totalProgressKm, specifier: "%.1f") km")
                     }
                     .font(.caption)
                     .foregroundStyle(.secondary)
             
             Slider(
-                value: $debugProgressOffsetKm,
-                in: 0...max(totalJourneyDistanceKm - healthKitProgressKm, 1)
+                value: Binding(
+                    get: {
+                        journeyStore.debugProgressOffsetKm
+                    },
+                    set: {
+                        newValue in journeyStore.setDebugProgressOffset(
+                            newValue,
+                            totalJourneyDistanceKm: totalJourneyDistanceKm
+                        )
+                    }
+                ),
+                in: 0...max(
+                    totalJourneyDistanceKm - journeyStore.healthKitProgressKm, 1
+                )
             )
 
             HStack {
                 Button("Reset Journey") {
-                    resetJourneyToToday()
+                    journeyStore.resetJourneyToToday()
                 }
                 .buttonStyle(.bordered)
 
                 Button("Jump +100 km") {
-                    debugProgressOffsetKm = min(
-                        debugProgressOffsetKm + 100,
-                        max(totalJourneyDistanceKm - healthKitProgressKm, 0)
+                    journeyStore.jumpDebugProgress(
+                        by: 100,
+                        totalJourneyDistanceKm: totalJourneyDistanceKm
                     )
                 }
                 .buttonStyle(.bordered)
                 
                 Button("Clear Debug") {
-                    journeyStartedAtTimestamp = 0
-                    healthKitProgressKm = 0
-                    debugProgressOffsetKm = 0
-                    lastSyncedAtTimestamp = 0
-                    healthKitMessage = nil
+                    journeyStore.clearDebugProgress()
+                }
+                .buttonStyle(.bordered)
+                
+                Button("Clear Start") {
+                    journeyStore.clearJourneyStart()
                 }
                 .buttonStyle(.bordered)
             }
@@ -338,51 +287,6 @@ struct HomeView: View {
                     segmentLink(for: segmentProgress)
                 }
             }
-        }
-    }
-    
-    @MainActor
-    private func autoSyncHealthKitIfNeeded() async {
-        guard shouldAutoSyncHealthKit else {
-            return
-        }
-        
-        guard !isSyncingHealthKit else {
-            return
-        }
-        
-        await syncingHealthKitDistance(
-            successMessagePrefix: "Auto-synced"
-        )
-    }
-
-    @MainActor
-    private func syncingHealthKitDistance(
-        successMessagePrefix: String = "Synced"
-    ) async {
-        guard !isSyncingHealthKit else {
-            return
-        }
-        
-        isSyncingHealthKit = true
-        healthKitMessage = nil
-        
-        defer {
-            isSyncingHealthKit = false
-        }
-        
-        do {
-            try await HealthKitManager.shared.requestAuthorization()
-            
-            let distanceKm = try await HealthKitManager.shared
-                .fetchWalkingRunningDistanceKm(from: journeyStartedAtDate)
-            
-            healthKitProgressKm = min(distanceKm, totalJourneyDistanceKm)
-            lastSyncedAtTimestamp = Date().timeIntervalSince1970
-            
-            healthKitMessage = "\(successMessagePrefix) \(distanceKm.formatted(.number.precision(.fractionLength(1)))) km from HealthKit."
-        } catch {
-            healthKitMessage = "HealthKit sync failed: \(error.localizedDescription)"
         }
     }
     
