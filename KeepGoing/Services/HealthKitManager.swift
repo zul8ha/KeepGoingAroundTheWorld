@@ -93,6 +93,13 @@ final class HealthKitManager {
                 options: .cumulativeSum
             ) { _, statistics, error in
                 if let error {
+                    let nsError = error as NSError
+                    
+                    if nsError.domain == HKError.errorDomain,
+                       nsError.code == HKError.Code.errorNoData.rawValue {
+                        continuation.resume(returning: 0)
+                        return
+                    }
                     continuation.resume(throwing: error)
                     return
                 }
