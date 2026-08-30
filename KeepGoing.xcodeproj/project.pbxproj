@@ -398,7 +398,7 @@
 				CODE_SIGN_ENTITLEMENTS = KeepGoing/KeepGoing.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = PN4MLLZ46Y;
+				DEVELOPMENT_TEAM = 5XJD2AR6K6;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "KeepGoing uses walking and running distance from HealthKit to calculate your progress on virtual routes.";
@@ -433,7 +433,7 @@
 				CODE_SIGN_ENTITLEMENTS = KeepGoing/KeepGoing.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = PN4MLLZ46Y;
+				DEVELOPMENT_TEAM = 5XJD2AR6K6;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "KeepGoing uses walking and running distance from HealthKit to calculate your progress on virtual routes.";
