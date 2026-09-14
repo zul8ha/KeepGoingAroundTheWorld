@@ -1,0 +1,68 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    name: Unit tests
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain
+        run: |
+          xcodebuild -version
+          xcrun simctl list runtimes | sed -n '1,10p'
+
+      # The simulator to run on is DISCOVERED, not hardcoded. Runner images change
+      # their device names and OS point-releases without notice (locally the OS
+      # reads "26.0.1", so a literal OS=26.0 finds nothing), and a stale name is a
+      # red build that has nothing to do with the code.
+      - name: Pick a simulator
+        id: sim
+        run: |
+          DEST_ID=$(xcodebuild -showdestinations \
+                      -project KeepGoing.xcodeproj -scheme KeepGoing 2>/dev/null \
+                    | grep 'platform:iOS Simulator' | grep -v placeholder \
+                    | grep -i 'name:iPhone' | head -1 \
+                    | sed -E 's/.*id:([0-9A-Fa-f-]+).*/\1/')
+          if [ -z "$DEST_ID" ]; then
+            echo "::error::No iPhone simulator matches this project."
+            echo "The usual cause is IPHONEOS_DEPLOYMENT_TARGET being newer than any"
+            echo "runtime on the image — xcodebuild then lists only placeholder"
+            echo "destinations. Available runtimes:"
+            xcrun simctl list runtimes
+            exit 1
+          fi
+          echo "id=$DEST_ID" >> "$GITHUB_OUTPUT"
+          xcodebuild -showdestinations -project KeepGoing.xcodeproj -scheme KeepGoing 2>/dev/null \
+            | grep "$DEST_ID" || true
+
+      - name: Test
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project KeepGoing.xcodeproj \
+            -scheme KeepGoing \
+            -only-testing:KeepGoingTests \
+            -destination "id=${{ steps.sim.outputs.id }}" \
+            -resultBundlePath TestResults.xcresult \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Keep the result bundle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TestResults
+          path: TestResults.xcresult
+          if-no-files-found: ignore
+          retention-days: 14
